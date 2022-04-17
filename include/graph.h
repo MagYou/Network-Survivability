@@ -17,7 +17,23 @@
 #include <float.h>
 #include "common.h"
 
-#define INFINI 1000000000
+#include <lemon/list_graph.h>
+#include <lemon/gomory_hu.h>
+#include <lemon/concepts/graph.h>
+#include <lemon/matching.h>
+#include <lemon/smart_graph.h>
+#include <lemon/connectivity.h>
+#include <lemon/concepts/maps.h>
+#include <lemon/lgf_reader.h>
+#include <lemon/math.h>
+#include <lemon/dijkstra.h>
+
+#include <lemon/adaptors.h>
+#include <lemon/preflow.h> 
+#include <lemon/bfs.h>
+#include <lemon/tolerance.h>
+ #include <lemon/network_simplex.h> 
+ #define INFINI 1000000000
 
 //#define EPS 1E-04
 #define MON_INFINITY 10E+20
@@ -156,6 +172,8 @@ typedef struct Graph
   Node *Nodes;
   Edge *Edges;
   std::vector<int> con; // connectivity types 
+
+	lemon::ListGraph lemonGraph; 
 } Graph;
 
 #define NO_MEM fprintf(stderr, "Unable to allocate memory\n");

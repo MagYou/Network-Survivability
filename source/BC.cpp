@@ -17,9 +17,7 @@
 
 #include ".././include/graph.h"
 #include ".././include/Functions.h"
-#include ".././include/Cuts.h"
-
-#include "../include/Graph_Plot.h"
+#include ".././include/Cuts.h" 
 
 /*****************************************************/
 
@@ -41,8 +39,7 @@ int main(int argc, char **argv)
 
 	char *inputFileName;
 	C_graph G;
-	Graph G_aux;
-	Graph_Plot G_plot; 
+	Graph G_aux; 
 	simpleEdge *theBestSolution;
 	double theBestValue;
  
@@ -57,7 +54,58 @@ int main(int argc, char **argv)
 	cout << "\n\nThe name of the instance is: " << instanceName;
 	
 	G.read_instance(inputFileName, stoi(argv[2])); // true: sndlib, false: tsplib
- 
+	for (int i = 0; i < G.nb_nodes; i++)
+		G_aux.lemonGraph.addNode();
+  
+	for (int i = 0; i < G.nb_edges; i++)
+		G_aux.lemonGraph.addEdge(G_aux.lemonGraph.nodeFromId(G.Edges[i]->end1->num), G_aux.lemonGraph.nodeFromId(G.Edges[i]->end2->num));
+
+	double density = 1.0;
+	std::vector<size_t> links_to_delete;
+	while(density > 0.2)
+	{ 
+		size_t rand_link = rand() % G.nb_edges;
+		if(std::find(links_to_delete.begin(), links_to_delete.end(), rand_link) != links_to_delete.end())
+			continue;
+		size_t num1 = G.Edges[rand_link]->end1->num;
+		size_t num2 = G.Edges[rand_link]->end2->num;  
+		G_aux.lemonGraph.erase(G_aux.lemonGraph.edgeFromId(rand_link));  
+		if(!lemon::connected(G_aux.lemonGraph))
+			G_aux.lemonGraph.addEdge(G_aux.lemonGraph.nodeFromId(num1), G_aux.lemonGraph.nodeFromId(num2));
+		else
+		{ 
+			links_to_delete.push_back(rand_link);
+			density = (double)((G.nb_edges - links_to_delete.size()) * 2)/ (double)(((G.nb_nodes)) * ((G.nb_nodes)-1)); 
+		} 
+	} 
+	G_aux.lemonGraph.clear();
+	std::sort(links_to_delete.begin(), links_to_delete.end());
+	for (int i = (links_to_delete.size()-1); i>=0; i--)
+	{  
+		G.Edges.erase(G.Edges.begin() + links_to_delete[i]); 
+		G.nb_edges--; 
+	} 
+
+	for (int i = 0; i < G.nb_edges; i++)
+		(*G.Edges[i]).num = i; 
+
+	for(int n = 0; n < G.nb_nodes; n++)
+		G.Nodes[n]->ed_incid.clear(); 
+
+	for(int l = 0; l < G.nb_edges; l++)
+	{
+		G.Nodes[(*G.Edges[l]->end1).num]->ed_incid.push_back(G.Edges[l]);
+		G.Nodes[(*G.Edges[l]->end2).num]->ed_incid.push_back(G.Edges[l]);
+	} 
+
+	for (int i = 0; i < G.nb_nodes; i++)
+		G_aux.lemonGraph.addNode();
+  
+	for (int i = 0; i < G.nb_edges; i++)
+		G_aux.lemonGraph.addEdge(G_aux.lemonGraph.nodeFromId(G.Edges[i]->end1->num), G_aux.lemonGraph.nodeFromId(G.Edges[i]->end2->num));
+
+				
+
 	for(int n = 0; n < int(stof(argv[3])*G.nb_nodes); n++)
 		G.con.push_back(1);
 	for(int n = 0; n < int(stof(argv[4])*G.nb_nodes); n++)
@@ -70,7 +118,8 @@ int main(int argc, char **argv)
 	std::copy(G.con.begin(), G.con.end(), std::back_inserter(G_aux.con));
 
 	G.affiche();
-
+ 
+	
 	/*************************************************************************/
 	/*Création du graphe auxilliaire pour les séparations de F-Partition, etc.*/
 	/*************************************************************************/
@@ -95,13 +144,12 @@ int main(int argc, char **argv)
 		cout << "ERROR:kECMASTER().Erreur pendant la lecture du graphe." << endl;
 		exit(-1);
 	}
-
-	G_plot.setCoordinatesAndGraph(&G, &G_aux);
+ 
 
 	/***********************************    B & C                       **********************************************/
 
 	int K = G.nb_edges;
-	createLP(G);
+	createLP(G, G_aux.lemonGraph);
  
 	// Chargement du modèle
 	CPXENVptr env = NULL;
@@ -135,10 +183,10 @@ int main(int argc, char **argv)
 	/****************************************************************************************************************************/
 
 	CUTINFO cutinfo;
-	updateCutinfo(&cutinfo, model, cur_numcols, G, &G_aux, &G_plot, theBestSolution, &theBestValue, K, inputFileName);
+	updateCutinfo(&cutinfo, model, cur_numcols, G, &G_aux, theBestSolution, &theBestValue, K, inputFileName);
 
 	LAZYCUTINFO lazycutinfo;
-	updateLazyCutinfo(&lazycutinfo, model, cur_numcols, G, &G_aux, &G_plot, theBestSolution, &theBestValue, K, inputFileName);
+	updateLazyCutinfo(&lazycutinfo, model, cur_numcols, G, &G_aux, theBestSolution, &theBestValue, K, inputFileName);
 
 	// CPLEX output on the screen
 	CPXsetintparam(env, CPX_PARAM_SCRIND, CPX_ON);

@@ -14,18 +14,16 @@
 #include <string.h>
 
 #include ".././include/graph.h"
-#include ".././include/Graph_Plot.h"
 #include ".././include/Functions.h"
 
-using namespace std;
+using namespace std; 
  
 struct cutinfo
 {
    CPXLPptr model;
    int numcols;
    C_graph Gr;
-   Graph *G_aux; // Utiliser pour les séparation provenant du kECSP.
-   Graph_Plot *G_plot; 
+   Graph *G_aux; // Utiliser pour les séparation provenant du kECSP. 
    int K; // nbre d'arete
    string instanceName; 
 
@@ -39,8 +37,7 @@ struct lazycutinfo
    CPXLPptr model;
    int numcols;
    C_graph Gr;
-   Graph *G_aux; // Utiliser pour les séparation provenant du kECSP.
-   Graph_Plot *G_plot; 
+   Graph *G_aux; // Utiliser pour les séparation provenant du kECSP. 
    int K;
    string instanceName; 
 
@@ -56,6 +53,7 @@ public:
    static vector<C_cut *> GeneratedSPPartition;
    static vector<C_cut *> GeneratedFPartition; 
    static vector<C_cut *> GeneratedPartition;
+   static vector<C_cut *> GeneratedNewCut;
 
 public:
    vector<int> vectInd;         // indices of var that appears in the cut
@@ -71,9 +69,9 @@ public:
 
 vector<C_edge *> coupeMin(CPXCENVptr env, CPXLPptr model, C_graph *G, double *sol_y, int numNodeI, int numNodeII, double *value); // OK !
 
-void updateCutinfo(CUTINFO *cutinfo, CPXLPptr model, int cur_numcols, C_graph G, Graph *G_aux, Graph_Plot *g_plot, simpleEdge *theBestSolution, double *theBestValue, int K, string instance);
+void updateCutinfo(CUTINFO *cutinfo, CPXLPptr model, int cur_numcols, C_graph G, Graph *G_aux,   simpleEdge *theBestSolution, double *theBestValue, int K, string instance);
 
-void updateLazyCutinfo(LAZYCUTINFO *lazycutinfo, CPXLPptr model, int cur_numcols, C_graph G, Graph *G_aux, Graph_Plot *g_plot, simpleEdge *theBestSolution, double *theBestValue, int K, string instance);
+void updateLazyCutinfo(LAZYCUTINFO *lazycutinfo, CPXLPptr model, int cur_numcols, C_graph G, Graph *G_aux,  simpleEdge *theBestSolution, double *theBestValue, int K, string instance);
 
 int mycutcallback(CPXCENVptr env, void *cbdata, int wherefrom, void *cbhandle, int *useraction_p);
 
@@ -81,7 +79,7 @@ int add_edge_cut_inequality(CPXCENVptr env, CPXLPptr model, void *cbdata, int wh
 int add_lazy_edge_cut_inequality(CPXCENVptr env, CPXLPptr model, void *cbdata, int wherefrom, C_graph G, double *sol_y);
 
 int separation_globale(CPXCENVptr env, CPXLPptr model, void *cbdata, int wherefrom, void *cbhandle, C_graph G, double *sol_y, int type);
- 
+ int AjouteNewCut(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, int wherefrom, Graph *gr);
 int AjouteSPPartition(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, int wherefrom, Graph *gr, b_Node *frac_cycle, long cycle_sz, FILE *sortie);
 int AjouteFPartition(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, int wherefrom, Graph *gr, int k, b_Node *frac_cycle, long cycle_sz, FILE *sortie);
 int AjoutePartition(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, int wherefrom, Graph *gr, int k, b_Node *frac_cycle, long cycle_sz, FILE *sortie);

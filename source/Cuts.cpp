@@ -5,23 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
-#include <lemon/list_graph.h>
-#include <lemon/gomory_hu.h>
-#include <lemon/concepts/graph.h>
-#include <lemon/matching.h>
-#include <lemon/smart_graph.h>
-#include <lemon/concepts/graph.h>
-#include <lemon/concepts/maps.h>
-#include <lemon/lgf_reader.h>
-#include <lemon/math.h>
-#include <lemon/dijkstra.h>
-
-#include <lemon/adaptors.h>
-#include <lemon/preflow.h>
-#include <lemon/list_graph.h>
-#include <lemon/gomory_hu.h>
-#include <lemon/bfs.h>
-#include <lemon/tolerance.h>
 
 #include <fstream>
 #include <algorithm>
@@ -47,6 +30,7 @@ vector<C_cut *> C_cut::GeneratedEdgeCuts;
 vector<C_cut *> C_cut::GeneratedSPPartition;
 vector<C_cut *> C_cut::GeneratedFPartition; 
 vector<C_cut *> C_cut::GeneratedPartition;
+vector<C_cut *> C_cut::GeneratedNewCut;
 
 C_cut::C_cut()
 {
@@ -173,14 +157,13 @@ vector<C_edge *> coupeMin(CPXCENVptr env, CPXLPptr model, C_graph *G, double *so
 //***************************************	updateCutinfo		***********************************************************
 //*********************************************************************************************************************************
 
-void updateCutinfo(CUTINFO *cutinfo, CPXLPptr model, int cur_numcols, C_graph G, Graph *G_aux, Graph_Plot *g_plot, simpleEdge *theBestSolution, double *theBestValue, int K, string instance)
+void updateCutinfo(CUTINFO *cutinfo, CPXLPptr model, int cur_numcols, C_graph G, Graph *G_aux,  simpleEdge *theBestSolution, double *theBestValue, int K, string instance)
 {
 	// cout<<"updateCutinfo !!!!"<<endl;
 	cutinfo->model = model;
 	cutinfo->numcols = cur_numcols;
 	cutinfo->Gr = G;
-	cutinfo->G_aux = G_aux;
-	cutinfo->G_plot = g_plot; 
+	cutinfo->G_aux = G_aux; 
 	cutinfo->K = K;
 	cutinfo->instanceName = instance; 
 
@@ -191,14 +174,13 @@ void updateCutinfo(CUTINFO *cutinfo, CPXLPptr model, int cur_numcols, C_graph G,
 //***************************************	updateCutinfo\end	***********************************************************
 //*********************************************************************************************************************************
 
-void updateLazyCutinfo(LAZYCUTINFO *lazycutinfo, CPXLPptr model, int cur_numcols, C_graph G, Graph *G_aux, Graph_Plot *g_plot, simpleEdge *theBestSolution, double *theBestValue, int K, string instance)
+void updateLazyCutinfo(LAZYCUTINFO *lazycutinfo, CPXLPptr model, int cur_numcols, C_graph G, Graph *G_aux, simpleEdge *theBestSolution, double *theBestValue, int K, string instance)
 {
 	// cout<<"updateCutinfo !!!!"<<endl;
 	lazycutinfo->model = model;
 	lazycutinfo->numcols = cur_numcols;
 	lazycutinfo->Gr = G;
-	lazycutinfo->G_aux = G_aux;
-	lazycutinfo->G_plot = g_plot; 
+	lazycutinfo->G_aux = G_aux; 
 	lazycutinfo->K = K;
 	lazycutinfo->instanceName = instance; 
 
@@ -484,13 +466,10 @@ int mycutcallback(CPXCENVptr env, void *cbdata, int wherefrom, void *cbhandle, i
 	CPXgetcallbacknodex(env, cbdata, wherefrom, x, 0, numcols - 1);
 
 	double objValue;
-	storeLPSolution(env, model, numcols - 1, x, sol_y, Gr, cutinfo->G_aux, &objValue);
-
-	// cutinfo->G_plot->save_xfig("Test.fig",true,2);// Affichage de la solution
+	storeLPSolution(env, model, numcols - 1, x, sol_y, Gr, cutinfo->G_aux, &objValue); 
 
 	flagFrac = isFrac(K, sol_y, EpsForIntegrality);
 	const char *I = instance.c_str();
-
 	if (flagFrac)
 	{ 
 		CPXgettime(env, &cplexTimeBeforeSepMSI);
@@ -498,6 +477,7 @@ int mycutcallback(CPXCENVptr env, void *cbdata, int wherefrom, void *cbhandle, i
 		int nbCoupe = 0;
 
 		nbCoupe = add_edge_cut_inequality(env, model, cbdata, wherefrom, Gr, sol_y);
+
 		//********************************************************
 		// Separation des F-partition et SP-Partition et Partition
 		if (nbCoupe == 0)
@@ -507,10 +487,7 @@ int mycutcallback(CPXCENVptr env, void *cbdata, int wherefrom, void *cbhandle, i
 
 			simpleEdge *reducedGraphEdgeList;
 			long m_ReducedGraphEdge;
-			reducedGraphEdgeList = GetReducedGraph_eList(cutinfo->G_aux, &m_ReducedGraphEdge);
-
-			//cutinfo->G_plot->save_shrunk_xfig("FractionalSolution-sh.fig", reducedGraphEdgeList, (long)m_ReducedGraphEdge, true, 2);
-			//cutinfo->G_plot->save_xfig("FractionalSolution.fig", true, 2);
+			reducedGraphEdgeList = GetReducedGraph_eList(cutinfo->G_aux, &m_ReducedGraphEdge); 
 
 			// Separation des contraintes
 			separation_globale(env, model, cbdata, wherefrom, cbhandle, Gr, sol_y, 1); 
@@ -545,10 +522,7 @@ int mycutcallback(CPXCENVptr env, void *cbdata, int wherefrom, void *cbhandle, i
 				(*cutinfo->bestValue) = objValue;
 
 				for (int i = 0; i < cutinfo->G_aux->m_Edges; i++) 
-					cutinfo->bestSolution[i].cap = cutinfo->G_aux->Edges[i].X; 
-
-				// Affichage de la solution
-				//cutinfo->G_plot->save_xfig("BestSolution.fig", true, 2);
+					cutinfo->bestSolution[i].cap = cutinfo->G_aux->Edges[i].X;  
 			}
 		}
 	}
@@ -608,6 +582,8 @@ int separation_globale(CPXCENVptr env, CPXLPptr model, void *cbdata, int wherefr
 
 	n = gr->n_Nodes;
 	m = gr->m_Edges;
+
+	AjouteNewCut(env, model, cbdata, cbhandle, wherefrom, gr);
 
 	// Frac_cycle n'est pas utilisé dans AjouteSP. Donc Frac_cycle == NIL_BN
 	res_sp = 0;
@@ -1182,6 +1158,34 @@ int separation_globale(CPXCENVptr env, CPXLPptr model, void *cbdata, int wherefr
 
 	//***************************************************
 }
+
+int AjouteNewCut(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, int wherefrom, Graph *gr)
+{
+	/*
+	lemon::ListGraph::ArcMap<double> weights((*gr).lemonGraph, 1.0);
+	lemon::ListGraph::ArcMap<double> capacities((*gr).lemonGraph, 1.0);
+	lemon::ListGraph::ArcMap<double> flows((*gr).lemonGraph);
+
+	for (lemon::ListGraph::EdgeIt i((*gr).lemonGraph); i!=lemon::INVALID; ++i)
+	{
+		capacities[(*gr).lemonGraph.arcFromId((*gr).lemonGraph.id(i))] = 0.0;
+		lemon::NetworkSimplex<lemon::ListGraph, double, double> ns((*gr).lemonGraph);
+    	ns.costMap(weights).upperMap(capacities).stSupply((*gr).lemonGraph.u(i), (*gr).lemonGraph.v(i), 2);
+
+		lemon::NetworkSimplex<lemon::ListGraph, double, double>::ProblemType status = ns.run(); 
+		if(status == lemon::NetworkSimplex<lemon::ListGraph, double, double>::OPTIMAL)
+		{
+			ns.flowMap(flows);
+			std::cout << "Solution found for link " <<  (*gr).lemonGraph.id(i) << "   : " << ns.totalCost() << std::endl;
+			for (lemon::ListGraph::EdgeIt j((*gr).lemonGraph); j!=lemon::INVALID; ++j)
+				//if(ns.flow((*gr).lemonGraph.arcFromId((*gr).lemonGraph.id(j))) > 0)
+					std::cout << (*gr).lemonGraph.id(j) << " : " << ns.flow((*gr).lemonGraph.arcFromId((*gr).lemonGraph.id(j))) << std::endl; 
+		} 
+	}*/
+	return 0;
+}
+
+
 
 int AjouteSPPartition(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, int wherefrom, Graph *gr, b_Node *frac_cycle, 
 long cycle_sz, FILE *sortie)

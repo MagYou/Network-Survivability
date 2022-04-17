@@ -24,7 +24,7 @@ string getInstanceName(char **argv);
 
 string getCollumName(CPXCENVptr cpxEnv, CPXLPptr cpxModel, int collumIndex);
 
-void createLP(C_graph G);
+void createLP(C_graph G,  lemon::ListGraph &leGraph);
 
 void storeLPSolution(CPXCENVptr env, CPXLPptr model, int numcols, double *x, double *sol_y, C_graph G, Graph *G_aux, double *objValue);
 
