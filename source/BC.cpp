@@ -54,6 +54,19 @@ int main(int argc, char **argv)
 	cout << "\n\nThe name of the instance is: " << instanceName;
 	
 	G.read_instance(inputFileName, stoi(argv[2])); // true: sndlib, false: tsplib
+	// Assigner les connexité
+	for(int n = 0; n < int(stof(argv[3])*G.nb_nodes); n++)
+		G.con.push_back(1);
+	for(int n = 0; n < int(stof(argv[4])*G.nb_nodes); n++)
+		G.con.push_back(2);
+	int start = G.con.size();
+	for(int n = start; n < G.nb_nodes; n++)
+		G.con.push_back(3);
+	std::random_shuffle(G.con.begin(), G.con.end());
+	std::copy(G.con.begin(), G.con.end(), std::back_inserter(G_aux.con));
+	//******************************************************
+
+
 	for (int i = 0; i < G.nb_nodes; i++)
 		G_aux.lemonGraph.addNode();
   
@@ -62,21 +75,42 @@ int main(int argc, char **argv)
 
 	double density = 1.0;
 	std::vector<size_t> links_to_delete;
-	while(density > 0.2)
+
+	size_t number_iterations;
+	while(density > 0.3)
 	{ 
-		size_t rand_link = rand() % G.nb_edges;
+		if(number_iterations >= 10000)
+			{
+				std::cout << "Infeasible" << std::endl;
+				exit(-1);
+			}
+		int rand_link = rand() % G.nb_edges;
 		if(std::find(links_to_delete.begin(), links_to_delete.end(), rand_link) != links_to_delete.end())
 			continue;
 		size_t num1 = G.Edges[rand_link]->end1->num;
 		size_t num2 = G.Edges[rand_link]->end2->num;  
+		auto node1 = G_aux.lemonGraph.u(G_aux.lemonGraph.edgeFromId(rand_link));
+		auto node2 = G_aux.lemonGraph.v(G_aux.lemonGraph.edgeFromId(rand_link));
 		G_aux.lemonGraph.erase(G_aux.lemonGraph.edgeFromId(rand_link));  
-		if(!lemon::connected(G_aux.lemonGraph))
+
+		// COMPUTE CUT 
+		lemon::ListGraph::EdgeMap<int> capa(G_aux.lemonGraph);
+		for (lemon::ListGraph::EdgeIt j(G_aux.lemonGraph); j!=lemon::INVALID; ++j)
+			capa[G_aux.lemonGraph.edgeFromId(G_aux.lemonGraph.id(j))] = 1.0;
+
+		GomoryHu<lemon::ListGraph, lemon::ListGraph::EdgeMap<int> > gom(G_aux.lemonGraph, capa);
+		gom.run();
+		//std::cout << "Min Cut " << gom.minCutValue(node1, node2) << std::endl;
+		//*************************************
+
+		if(!lemon::connected(G_aux.lemonGraph) && gom.minCutValue(node1, node2)> std::min(G.con[num1], G.con[num2]) )
 			G_aux.lemonGraph.addEdge(G_aux.lemonGraph.nodeFromId(num1), G_aux.lemonGraph.nodeFromId(num2));
 		else
 		{ 
 			links_to_delete.push_back(rand_link);
 			density = (double)((G.nb_edges - links_to_delete.size()) * 2)/ (double)(((G.nb_nodes)) * ((G.nb_nodes)-1)); 
 		} 
+		number_iterations++;
 	} 
 	G_aux.lemonGraph.clear();
 	std::sort(links_to_delete.begin(), links_to_delete.end());
@@ -104,18 +138,6 @@ int main(int argc, char **argv)
 	for (int i = 0; i < G.nb_edges; i++)
 		G_aux.lemonGraph.addEdge(G_aux.lemonGraph.nodeFromId(G.Edges[i]->end1->num), G_aux.lemonGraph.nodeFromId(G.Edges[i]->end2->num));
 
-				
-
-	for(int n = 0; n < int(stof(argv[3])*G.nb_nodes); n++)
-		G.con.push_back(1);
-	for(int n = 0; n < int(stof(argv[4])*G.nb_nodes); n++)
-		G.con.push_back(2);
-	int start = G.con.size();
-	for(int n = start; n < G.nb_nodes; n++)
-		G.con.push_back(3);
-	std::random_shuffle(G.con.begin(), G.con.end());
-
-	std::copy(G.con.begin(), G.con.end(), std::back_inserter(G_aux.con));
 
 	G.affiche();
  
