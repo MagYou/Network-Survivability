@@ -32,7 +32,7 @@ void printSolution(CPXCENVptr env, CPXLPptr model, int cur_numcols, double *sol_
 
 void printResults(CPXCENVptr env, CPXLPptr model, string nomeDaInstancia, double time);
 
-void printResultsToFile(CPXCENVptr env, CPXLPptr model, string nameOfInstance, double time, int cur_numcols, C_graph G, int K);
+void printResultsToFile(CPXCENVptr env, CPXLPptr model, string nameOfInstance, double time, int cur_numcols, C_graph G, int K, std::string result_name);
 
 bool isFrac(int K, double *sol_y, double EpsForIntegrality);
 

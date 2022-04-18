@@ -392,12 +392,14 @@ void printResults(CPXCENVptr env, CPXLPptr model, string nomeDaInstancia, double
 	cout << "LB: " << LB << endl;
 	cout << "UB: " << UB << endl;
 	cout << "Optimum: " << optimum << endl;
+
+
 }
 /***************************************************************************************************************************/
 
 /*****************************************	printResultsToFile		********************************************/
 
-void printResultsToFile(CPXCENVptr env, CPXLPptr model, string nameOfInstance, double time, int cur_numcols, C_graph G, int K)
+void printResultsToFile(CPXCENVptr env, CPXLPptr model, string nameOfInstance, double time, int cur_numcols, C_graph G, int K, std::string result_name)
 {
 	double *x = new double[cur_numcols];
 	CPXgetx(env, model, x, 0, cur_numcols - 1);
@@ -431,16 +433,16 @@ void printResultsToFile(CPXCENVptr env, CPXLPptr model, string nameOfInstance, d
 	CPXgetbestobjval(env, model, &LB);
 	CPXgetmiprelgap(env, model, &gap);
 
-	ofstream results("Results.txt", ios::app);
-	results << "Instance: " << nameOfInstance << endl;
-	results << " User Cuts Applied: " << numcovers << endl;
-	results << " Tree_Size: " << nodecount + nodes_left + 1 << endl;
-	results << " Gap: " << gap << endl;
-	results << " Total_Time: " << time << " = " << ((int)time) / 60 << " min " << ((int)time) % 60 << " sec " << round((time - (int)time) * 100) << " ms" << endl;
-	results << " LB: " << LB << endl;
-	results << " UB: " << UB << endl;
-	results << " Optimum: " << optimum << endl;
-	results << "\n\nSolution:\n " << endl;
+	ofstream results(result_name,  std::ofstream::out | std::ofstream::trunc);
+
+	results << "Instance, nb_cut, nbSP, nbFP, nbP, Tree_Size, Gap, Total_Time, LB, UB, Optimum" << std::endl;
+
+	results <<nameOfInstance <<","<<C_cut::GeneratedEdgeCuts.size() <<","<< C_cut::GeneratedSPPartition.size()<<","<<
+	C_cut::GeneratedFPartition.size() <<","<<C_cut::GeneratedPartition.size()<<","<< nodecount + nodes_left + 1 <<","<< gap <<","<< time <<","<< LB<<"," << UB <<","<< optimum << std::endl;
+	
+
+	
+	/*results << "\n\nSolution:\n " << endl;
 
 	for (int l = 0; l < cur_numcols; l++)
 	{
@@ -457,7 +459,7 @@ void printResultsToFile(CPXCENVptr env, CPXLPptr model, string nameOfInstance, d
 				results << "x(" << i << "," << j << ") " << sol_y[l] << endl;
 			}
 		}
-	}
+	}*/
 	results << endl;
 	results.close();
 

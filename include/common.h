@@ -85,6 +85,7 @@ typedef struct Mincut
 #define W_B_ONLY 2
 #define W_AND_W_B 3
 
+std::string GetFileNameFromPath(const char* _buffer);
 /*Print the table containing the tree given in parameter*/
 void PrintGHCutTree_Table(Tree *ghct);
 

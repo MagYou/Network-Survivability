@@ -10,11 +10,13 @@
 #include <vector>
 #include <algorithm>
 #include <string.h>
+#include <random>
 #include <list>
 #include <ctime>
 #include <iostream>
 #include <string>
 
+#include <filesystem> 
 #include ".././include/graph.h"
 #include ".././include/Functions.h"
 #include ".././include/Cuts.h" 
@@ -43,11 +45,13 @@ int main(int argc, char **argv)
 	simpleEdge *theBestSolution;
 	double theBestValue;
  
-	if (argc != 10)
+	if (argc != 11)
 	{
 		std::cout << " : Number of arguments is not correct : "  << argc << endl;
 		return 1;
 	}
+
+	srand(stoi(argv[10]));
 	int typeInstance = stoi(argv[2]); // true: sndlib, false: tsplib
 
 	inputFileName = new char[strlen(argv[1]) + 1];
@@ -289,7 +293,11 @@ int main(int argc, char **argv)
 	cout << UB << endl;
 
 	// printSolution(env, model,cur_numcols, K, M);
-	printResultsToFile(env, model, instanceName, time1, cur_numcols - 1, G, K);
+	std::string result_name = GetFileNameFromPath(inputFileName) + "_" + std::to_string(typeInstance) + "_" + std::to_string(ratio_con_type_1) + "_" + std::to_string(ratio_con_type_2
+	) + "_" + std::to_string(density_input) + "_" + std::to_string(G_aux.allow_partition_cut 
+	) + "_" + std::to_string(G_aux.allow_sp_partition_cut) + "_" + std::to_string(G_aux.allow_F_partition_cut) + "_" + std::to_string(G_aux.allow_new_cut) + ".csv";
+	std::cout << result_name << std::endl;
+	printResultsToFile(env, model, instanceName, time1, cur_numcols - 1, G, K, result_name);
 	printResults(env, model, instanceName, time1);
 
 	CPXfreeprob(env, &model);

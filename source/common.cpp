@@ -198,6 +198,25 @@ void RenumberTables(b_Node *f_w, simpleNode **Tab_12, long n_12, simpleNode **Ta
 	free(aux);
 }
 
+string GetFileNameFromPath(const char* _buffer)
+{
+    char c;
+    int  i;
+    for (i = 0; ;++i) {
+        c = *((char*)_buffer+i);
+        if (c == '\\' || c == '/')
+            return GetFileNameFromPath((char*)_buffer + i + 1);
+        if (c == '\0')
+		{
+			std::string s(_buffer);
+			size_t lastindex = s.find_last_of("."); 
+			string rawname = s.substr(0, lastindex); 
+            return rawname;
+		}
+    }
+    return "";
+}
+
 /*Create a new list of b_Node from the list f_w. corresp_tab says what*/
 /*is the correspondant of each node.If you are doing a old-to-new correspondance,*/
 /*you should give the table Tab_12 obtained with the function RenumberTables().*/
