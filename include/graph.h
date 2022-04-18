@@ -173,6 +173,11 @@ typedef struct Graph
   Edge *Edges;
   std::vector<int> con; // connectivity types 
 
+	int allow_partition_cut;
+	int allow_sp_partition_cut;
+	int allow_F_partition_cut;
+	int allow_new_cut;
+
 	lemon::ListGraph lemonGraph; 
 } Graph;
 

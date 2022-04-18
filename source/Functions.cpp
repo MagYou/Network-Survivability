@@ -135,7 +135,7 @@ string getCollumName(CPXCENVptr cpxEnv, CPXLPptr cpxModel, int collumIndex)
 
 /*****************************************	createLP	********************************************/
 
-void createLP(C_graph G, lemon::ListGraph &leGraph)
+void createLP(C_graph G, int new_cut_flag, lemon::ListGraph &leGraph)
 {
 
 	int i, j;
@@ -194,61 +194,64 @@ void createLP(C_graph G, lemon::ListGraph &leGraph)
 
 	/*************************************************************************************************************/
 	
-	lemon::ListGraph::EdgeMap<double> weights(leGraph), capacities(leGraph), flows(leGraph), coeff(leGraph);
-	for (lemon::ListGraph::EdgeIt j(leGraph); j!=lemon::INVALID; ++j)
+	if (new_cut_flag == 1)
 	{
-		weights[leGraph.edgeFromId(leGraph.id(j))] = 1.0;
-		capacities[leGraph.edgeFromId(leGraph.id(j))] = 1.0; 
-	}
-	size_t nbCts2; 
-	for (lemon::ListGraph::EdgeIt i(leGraph); i!=lemon::INVALID; ++i)
-	{ 
-		int linkID = leGraph.id(i);
-		auto edge = leGraph.edgeFromId(linkID); 
-
-		// ******************** Count number of links with link i ***************************
-		int nb_links_with = 0;
-		lemon::NetworkSimplex<lemon::ListGraph, double, double> ns(leGraph);
-    	ns.costMap(weights).upperMap(capacities).stSupply(leGraph.u(edge), leGraph.v(edge), 2);
-		auto status = ns.run(); 
-		if(status == lemon::NetworkSimplex<lemon::ListGraph, double, double>::OPTIMAL) 
-			nb_links_with = ns.totalCost() - 1;  
-
-		// ******************** Count number of links without link i ***************************
-		int nb_links_without = 0;
-		capacities[edge] = 0.0; 
-    	ns.costMap(weights).upperMap(capacities).stSupply(leGraph.u(edge), leGraph.v(edge), 2);
-		status = ns.run();
-		if(status == lemon::NetworkSimplex<lemon::ListGraph, double, double>::OPTIMAL) 
-			nb_links_without = ns.totalCost() - 2;  
-
-		if((nb_links_without - nb_links_with) < 2)
-			continue;
-			
-		std::vector <size_t> incidentLinks;
-		for(auto el : G.Nodes[leGraph.id(leGraph.u(edge))]->ed_incid)
-			incidentLinks.push_back(el->num);
-		for(auto el : G.Nodes[leGraph.id(leGraph.v(edge))]->ed_incid)
-			incidentLinks.push_back(el->num); 
-
-		IloExpr exp(env);
+		lemon::ListGraph::EdgeMap<double> weights(leGraph), capacities(leGraph), flows(leGraph), coeff(leGraph);
 		for (lemon::ListGraph::EdgeIt j(leGraph); j!=lemon::INVALID; ++j)
-			if(std::find(incidentLinks.begin(), incidentLinks.end(), leGraph.id(j)) == incidentLinks.end()) 
-			{
-				std::cout << "x_" << leGraph.id(j) << " + "; 
-				exp += x[leGraph.id(j)]; 
+		{
+			weights[leGraph.edgeFromId(leGraph.id(j))] = 1.0;
+			capacities[leGraph.edgeFromId(leGraph.id(j))] = 1.0; 
+		}
+		size_t nbCts2; 
+		for (lemon::ListGraph::EdgeIt i(leGraph); i!=lemon::INVALID; ++i)
+		{ 
+			int linkID = leGraph.id(i);
+			auto edge = leGraph.edgeFromId(linkID); 
 
-			} 
+			// ******************** Count number of links with link i ***************************
+			int nb_links_with = 0;
+			lemon::NetworkSimplex<lemon::ListGraph, double, double> ns(leGraph);
+			ns.costMap(weights).upperMap(capacities).stSupply(leGraph.u(edge), leGraph.v(edge), 2);
+			auto status = ns.run(); 
+			if(status == lemon::NetworkSimplex<lemon::ListGraph, double, double>::OPTIMAL) 
+				nb_links_with = ns.totalCost() - 1;  
 
-		exp += (nb_links_without - nb_links_with) * x[linkID];
-		std::cout <<  (nb_links_without - nb_links_with) << " * x_" << linkID << " >= " << nb_links_without << std::endl;
+			// ******************** Count number of links without link i ***************************
+			int nb_links_without = 0;
+			capacities[edge] = 0.0; 
+			ns.costMap(weights).upperMap(capacities).stSupply(leGraph.u(edge), leGraph.v(edge), 2);
+			status = ns.run();
+			if(status == lemon::NetworkSimplex<lemon::ListGraph, double, double>::OPTIMAL) 
+				nb_links_without = ns.totalCost() - 2;  
 
-		IloRange r = (exp >= nb_links_without);
-		char a[100];
-		sprintf(a, "a%d", nbCts2);
-		r.setName(a);
-		model.add(r); 
-		nbCts2++;		
+			if((nb_links_without - nb_links_with) < 2)
+				continue;
+				
+			std::vector <size_t> incidentLinks;
+			for(auto el : G.Nodes[leGraph.id(leGraph.u(edge))]->ed_incid)
+				incidentLinks.push_back(el->num);
+			for(auto el : G.Nodes[leGraph.id(leGraph.v(edge))]->ed_incid)
+				incidentLinks.push_back(el->num); 
+
+			IloExpr exp(env);
+			for (lemon::ListGraph::EdgeIt j(leGraph); j!=lemon::INVALID; ++j)
+				if(std::find(incidentLinks.begin(), incidentLinks.end(), leGraph.id(j)) == incidentLinks.end()) 
+				{
+					std::cout << "x_" << leGraph.id(j) << " + "; 
+					exp += x[leGraph.id(j)]; 
+
+				} 
+
+			exp += (nb_links_without - nb_links_with) * x[linkID];
+			std::cout <<  (nb_links_without - nb_links_with) << " * x_" << linkID << " >= " << nb_links_without << std::endl;
+
+			IloRange r = (exp >= nb_links_without);
+			char a[100];
+			sprintf(a, "a%d", nbCts2);
+			r.setName(a);
+			model.add(r); 
+			nbCts2++;		
+		}
 	}
 
 	IloCplex cplex(model);

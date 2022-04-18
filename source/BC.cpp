@@ -43,21 +43,32 @@ int main(int argc, char **argv)
 	simpleEdge *theBestSolution;
 	double theBestValue;
  
-	if (argc != 5)
+	if (argc != 10)
 	{
-		cerr << "usage: " << argv[0] << " : Number of arguments is not correct." << endl;
+		std::cout << " : Number of arguments is not correct : "  << argc << endl;
 		return 1;
 	}
+	int typeInstance = stoi(argv[2]); // true: sndlib, false: tsplib
+
 	inputFileName = new char[strlen(argv[1]) + 1];
 	sprintf(inputFileName, "%s", argv[1]);
 	string instanceName = getInstanceName(argv);
 	cout << "\n\nThe name of the instance is: " << instanceName;
 	
-	G.read_instance(inputFileName, stoi(argv[2])); // true: sndlib, false: tsplib
+	G.read_instance(inputFileName, typeInstance);
+
+	int ratio_con_type_1 = stoi(argv[3]);
+	int ratio_con_type_2 = stoi(argv[4]);
+	double density_input = stof(argv[5]);
+	G_aux.allow_partition_cut = stoi(argv[6]);
+	G_aux.allow_sp_partition_cut = stoi(argv[7]);
+	G_aux.allow_F_partition_cut = stoi(argv[8]);
+	G_aux.allow_new_cut = stoi(argv[9]);
+
 	// Assigner les connexité
-	for(int n = 0; n < int(stof(argv[3])*G.nb_nodes); n++)
+	for(int n = 0; n < int(ratio_con_type_1*G.nb_nodes); n++)
 		G.con.push_back(1);
-	for(int n = 0; n < int(stof(argv[4])*G.nb_nodes); n++)
+	for(int n = 0; n < int(ratio_con_type_2*G.nb_nodes); n++)
 		G.con.push_back(2);
 	int start = G.con.size();
 	for(int n = start; n < G.nb_nodes; n++)
@@ -77,7 +88,7 @@ int main(int argc, char **argv)
 	std::vector<size_t> links_to_delete;
 
 	size_t number_iterations;
-	while(density > 0.3)
+	while(density > density_input)
 	{ 
 		if(number_iterations >= 10000)
 			{
@@ -171,7 +182,7 @@ int main(int argc, char **argv)
 	/***********************************    B & C                       **********************************************/
 
 	int K = G.nb_edges;
-	createLP(G, G_aux.lemonGraph);
+	createLP(G, G_aux.allow_new_cut, G_aux.lemonGraph);
  
 	// Chargement du modèle
 	CPXENVptr env = NULL;

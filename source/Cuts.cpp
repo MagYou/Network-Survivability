@@ -1190,8 +1190,8 @@ int AjouteNewCut(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, i
 int AjouteSPPartition(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, int wherefrom, Graph *gr, b_Node *frac_cycle, 
 long cycle_sz, FILE *sortie)
 {
-
-	// return 0;
+	if ((*gr).allow_sp_partition_cut == 0)
+		return 0;
 
 	bool sp_ok = false;
 	Bool sp_part_result = kECSP_False;
@@ -1441,6 +1441,9 @@ std::cout << "Nmber Components " << nb_sp_part << std::endl;
 int AjouteFPartition(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, int wherefrom, Graph *gr, int k, b_Node *frac_cycle, long cycle_sz, FILE *sortie)
 {
 
+	if ((*gr).allow_F_partition_cut == 0)
+		return 0;
+
 	long *f_part_list = NULL;
 	long *V0_F, V0_F_sz;
 
@@ -1587,7 +1590,8 @@ int AjouteFPartition(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandl
 
 int AjoutePartition(CPXCENVptr env, CPXLPptr model, void *cbdata, void *cbhandle, int wherefrom, Graph *gr, int k, b_Node *frac_cycle, long cycle_sz, FILE *sortie)
 {
-	// return 0;
+	if ((*gr).allow_partition_cut == 0)
+		return 0;
 
 	long *part_list = NULL;
 	long rhs_part;
